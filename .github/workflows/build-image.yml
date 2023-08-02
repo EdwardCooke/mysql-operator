@@ -1,0 +1,52 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "ec-mine" ]
+
+env:
+  image_name: mysql-operator
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the repository 
+      uses: actions/checkout@v3
+    - name: Generate dockerfile
+      run: ./gen_dockerfile.sh
+    - name: Az CLI login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Get secrets
+      id: secrets
+      run: |
+        REGISTRY_PASSWORD=$(az keyvault secret show --name REGISTRY-PASSWORD --vault-name kvveccgithub --query value --output tsv)
+        REGISTRY_USERNAME=$(az keyvault secret show --name REGISTRY-USERNAME --vault-name kvveccgithub --query value --output tsv)
+        REGISTRY_NAME=$(az keyvault secret show --name REGISTRY-NAME --vault-name kvveccgithub --query value --output tsv)
+        echo "::add-mask::$REGISTRY_PASSWORD"
+        echo "::add-mask::$REGISTRY_USERNAME"
+        echo "::add-mask::$REGISTRY_NAME"
+        echo "registry_password=$REGISTRY_PASSWORD" >> $GITHUB_OUTPUT
+        echo "registry_username=$REGISTRY_USERNAME" >> $GITHUB_OUTPUT
+        echo "registry_name=$REGISTRY_NAME" >> $GITHUB_OUTPUT
+    - name: Docker Login
+      run: docker login -u ${REGISTRY_USERNAME} --password-stdin ${REGISTRY_NAME} <<<${REGISTRY_PASSWORD}
+      env:
+        REGISTRY_PASSWORD: ${{ steps.secrets.outputs.registry_password }}
+        REGISTRY_USERNAME: ${{ steps.secrets.outputs.registry_username }}
+        REGISTRY_NAME: ${{ steps.secrets.outputs.registry_name }}
+    - name: Build and push the Docker image
+      run: |
+        IMAGE_VERSION=$(date +%Y%m%d-%H%M%S)
+        docker run --privileged --rm tonistiigi/binfmt --install arm64
+        docker run --privileged --rm tonistiigi/binfmt
+        docker buildx create --use
+        docker buildx build --platform linux/amd64,linux/arm64 \
+          -t ${REGISTRY_NAME}/${image_name}:${IMAGE_VERSION} \
+          -t ${REGISTRY_NAME}/${image_name}:latest \
+          --push \
+          .
+      env:
+        REGISTRY_NAME: ${{ steps.secrets.outputs.registry_name }}

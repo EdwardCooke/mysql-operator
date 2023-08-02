@@ -5,10 +5,10 @@
 
 FROM container-registry.oracle.com/os/oraclelinux:8-slim AS init
 
-RUN rpm -U %%MYSQL_REPO_URL%%/%%MYSQL_CONFIG_PKG%%-el8.rpm \
+RUN rpm -U http://repo.mysql.com/mysql80-community-release-el8.rpm \
   && microdnf update && echo "[main]" > /etc/dnf/dnf.conf \
-  && microdnf install --enablerepo=%%MYSQL_SHELL_REPO%% -y glibc-langpack-en mysql-shell%%MYSQL_SHELL_VERSION%% \
-  && microdnf remove %%MYSQL_CONFIG_PKG%% \
+  && microdnf install --enablerepo=mysql-tools-community -y glibc-langpack-en python39-pip mysql-shell \
+  && microdnf remove mysql80-community-release \
   && microdnf clean all
 
 #########################
@@ -33,7 +33,7 @@ COPY mysqloperator/ /usr/lib/mysqlsh/python-packages/mysqloperator
 # See move here: https://github.com/kubernetes-client/python/issues/1718
 RUN sed -i "s/available_replicas=None,/available_replicas=0,/" /usr/lib/mysqlsh/python-packages/kubernetes/client/models/v1_stateful_set_status.py
 
-
 USER 2
 
 ENV HOME=/mysqlsh
+
