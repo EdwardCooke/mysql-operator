@@ -5,7 +5,7 @@ on:
     branches: [ "ec-mine" ]
 
 env:
-  image_name: mysql-operator
+  image_name: mysql/community-operator
 
 jobs:
   build:
