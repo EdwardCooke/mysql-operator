@@ -6,7 +6,7 @@
 
 
 MYSQL_REPO_URL="http://repo.mysql.com"; [ -n "${1}" ] && MYSQL_REPO_URL="${1}"
-MYSQL_SHELL_VERSION=""; [ -n "${2}" ] && MYSQL_SHELL_VERSION="${2}"
+MYSQL_SHELL_VERSION="$(./tag.sh | sed 's/-.*//')"; [ -n "${2}" ] && MYSQL_SHELL_VERSION="${2}"
 MYSQL_CONFIG_PKG="mysql80-community-release"; [ -n "${3}" ] && MYSQL_CONFIG_PKG="${3}"
 MYSQL_SHELL_REPO="mysql-tools-community"; [ -n "${4}" ] && MYSQL_SHELL_REPO="${4}"
 

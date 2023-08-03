@@ -3,18 +3,16 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl/
 #
 
-FROM container-registry.oracle.com/os/oraclelinux:8-slim AS init
+FROM container-registry.oracle.com/os/oraclelinux:9 AS init
 
-RUN rpm -U %%MYSQL_REPO_URL%%/%%MYSQL_CONFIG_PKG%%-el8.rpm \
-  && microdnf update && echo "[main]" > /etc/dnf/dnf.conf \
-  && microdnf install --enablerepo=%%MYSQL_SHELL_REPO%% -y glibc-langpack-en mysql-shell%%MYSQL_SHELL_VERSION%% \
-  && microdnf remove %%MYSQL_CONFIG_PKG%% \
-  && microdnf clean all
+RUN curl -L -o /opt/mysql-shell.rpm "https://dev.mysql.com/get/Downloads/MySQL-Shell/mysql-shell-%%MYSQL_SHELL_VERSION%%-1.el9.$(uname -m).rpm" \
+  && dnf install -y /opt/mysql-shell.rpm
 
 #########################
 
 FROM init AS pipinstaller
 COPY ./docker-deps/requirements.txt .
+RUN dnf install -y python3-pip
 RUN pip3 install --target=/tmp/site-packages -r requirements.txt
 
 #########################
